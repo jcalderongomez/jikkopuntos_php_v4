@@ -1,14 +1,41 @@
 // Sidebar Toggle
-document.getElementById('toggleSidebar').addEventListener('click', function() {
-    const sidebar = document.getElementById('sidebar');
+const toggleSidebarButton = document.getElementById('toggleSidebar');
+const sidebar = document.getElementById('sidebar');
+
+function updateToggleButtonState() {
+    const icon = toggleSidebarButton.querySelector('i');
+    if (sidebar.classList.contains('collapsed')) {
+        icon.className = 'fas fa-chevron-right';
+        toggleSidebarButton.setAttribute('title', 'Expandir barra');
+        toggleSidebarButton.setAttribute('aria-label', 'Expandir barra');
+        toggleSidebarButton.setAttribute('aria-expanded', 'false');
+    } else {
+        icon.className = 'fas fa-bars';
+        toggleSidebarButton.setAttribute('title', 'Colapsar barra');
+        toggleSidebarButton.setAttribute('aria-label', 'Colapsar barra');
+        toggleSidebarButton.setAttribute('aria-expanded', 'true');
+    }
+}
+
+toggleSidebarButton.addEventListener('click', function() {
     sidebar.classList.toggle('collapsed');
+    updateToggleButtonState();
 });
+
+// Ajuste inicial
+updateToggleButtonState();
+
+// Menu Navigation
 
 // Menu Navigation
 document.querySelectorAll('.menu-item').forEach(item => {
     item.addEventListener('click', function(e) {
         e.preventDefault();
         
+        // determine previously active section (if any)
+        const prevItem = document.querySelector('.menu-item.active');
+        const prevSection = prevItem ? prevItem.dataset.section : null;
+
         // Remove active class from all items
         document.querySelectorAll('.menu-item').forEach(mi => mi.classList.remove('active'));
         
@@ -26,6 +53,15 @@ document.querySelectorAll('.menu-item').forEach(item => {
         if (section) {
             section.classList.add('active');
             document.getElementById('page-title').textContent = this.querySelector('span').textContent;
+        }
+        
+        // clear filters from previous section
+        if (prevSection) {
+            clearFiltersForSection(prevSection);
+        }
+        // also ensure filters for the new section start empty
+        if (sectionName && sectionName !== prevSection) {
+            clearFiltersForSection(sectionName);
         }
         
         // Load data for the section
@@ -57,12 +93,178 @@ function loadSectionData(section) {
     }
 }
 
+// Clear filters for a given section
+function clearFiltersForSection(section) {
+    switch(section) {
+        case 'campañas':
+            limpiarFiltrosCampanas();
+            break;
+        case 'ingles':
+            limpiarFiltrosIngles();
+            break;
+        case 'pausas':
+            limpiarFiltrosPausas();
+            break;
+        case 'puntos-adicionales':
+            limpiarFiltros();
+            break;
+        case 'totales':
+            limpiarFiltrosTotales();
+            break;
+        // sync has no filters
+    }
+}
+
 // Variables globales para almacenar todos los datos
 let allCampanasData = [];
 let allTotalesData = [];
 let allInglesData = [];
 let allPausasData = [];
 let allPuntosAdicionalesData = [];
+
+// --- sorting helpers ---------------------------------------------------
+function sortDataArray(section, key, direction) {
+    let arr;
+    switch(section) {
+        case 'campañas': arr = allCampanasData; break;
+        case 'ingles': arr = allInglesData; break;
+        case 'pausas': arr = allPausasData; break;
+        case 'puntos-adicionales': arr = allPuntosAdicionalesData; break;
+        case 'totales': arr = allTotalesData; break;
+        default: return;
+    }
+    // perform sort
+    arr.sort((a, b) => {
+        let va, vb;
+        if (section === 'pausas' && key === 'puntos') {
+            va = calcularPuntosPausa(a.tipo_pausa);
+            vb = calcularPuntosPausa(b.tipo_pausa);
+        } else {
+            va = a[key];
+            vb = b[key];
+        }
+        if (va === undefined || va === null) va = '';
+        if (vb === undefined || vb === null) vb = '';
+        // try numeric comparison
+        const na = parseFloat(va);
+        const nb = parseFloat(vb);
+        if (!isNaN(na) && !isNaN(nb)) {
+            va = na;
+            vb = nb;
+        }
+        if (va < vb) return direction === 'asc' ? -1 : 1;
+        if (va > vb) return direction === 'asc' ? 1 : -1;
+        return 0;
+    });
+    // update global variable so subsequent filters/resorts preserve order
+    switch(section) {
+        case 'campañas': allCampanasData = arr; break;
+        case 'ingles': allInglesData = arr; break;
+        case 'pausas': allPausasData = arr; break;
+        case 'puntos-adicionales': allPuntosAdicionalesData = arr; break;
+        case 'totales': allTotalesData = arr; break;
+    }
+    // re-render
+    switch(section) {
+        case 'campañas': renderCampañasTable(arr); break;
+        case 'ingles': renderInglesTable(arr); break;
+        case 'pausas': renderPausasTable(arr); break;
+        case 'puntos-adicionales': renderPuntosAdicionalesTable(arr); break;
+        case 'totales': renderTotalesTable(arr); break;
+    }
+}
+
+function updateSortIcons(table, activeTh, direction) {
+    table.querySelectorAll('th.sortable i').forEach(i => {
+        i.className = 'fas fa-sort';
+    });
+    const icon = activeTh.querySelector('i');
+    if (direction === 'asc') {
+        icon.className = 'fas fa-sort-up';
+    } else {
+        icon.className = 'fas fa-sort-down';
+    }
+}
+
+function attachSortHandlers() {
+    document.querySelectorAll('table.data-table').forEach(table => {
+        const section = table.dataset.section;
+        if (!section) return;
+        table.querySelectorAll('th.sortable').forEach(th => {
+            th.addEventListener('click', () => {
+                const key = th.dataset.key;
+                const current = th.dataset.direction || 'asc';
+                const direction = current === 'asc' ? 'desc' : 'asc';
+                // clear directions from siblings
+                table.querySelectorAll('th.sortable').forEach(x => { delete x.dataset.direction; });
+                th.dataset.direction = direction;
+                updateSortIcons(table, th, direction);
+                sortDataArray(section, key, direction);
+            });
+        });
+    });
+}
+
+// ----------------------------------------------------------------------
+// Date filter validation helpers
+// ----------------------------------------------------------------------
+
+function getTodayString() {
+    return new Date().toISOString().split('T')[0];
+}
+
+function validateDateFilters(desdeId, hastaId) {
+    const desdeInput = document.getElementById(desdeId);
+    const hastaInput = document.getElementById(hastaId);
+    const today = getTodayString();
+    
+    if (!desdeInput || !hastaInput) return;
+    
+    const desdeValue = desdeInput.value;
+    const hastaValue = hastaInput.value;
+    
+    // Disable "hasta" if "desde" is not selected
+    hastaInput.disabled = !desdeValue;
+    
+    // Validate dates are not in the future
+    if (desdeValue && desdeValue > today) {
+        alert('La fecha "desde" no puede ser mayor a la fecha actual.');
+        desdeInput.value = '';
+        hastaInput.disabled = true;
+        return;
+    }
+    
+    if (hastaValue && hastaValue > today) {
+        alert('La fecha "hasta" no puede ser mayor a la fecha actual.');
+        hastaInput.value = '';
+        return;
+    }
+    
+    // Validate desde <= hasta
+    if (desdeValue && hastaValue && desdeValue > hastaValue) {
+        alert('La fecha "desde" no puede ser mayor a la fecha "hasta".');
+        desdeInput.value = '';
+        hastaInput.disabled = true;
+        return;
+    }
+}
+
+function setupDateFilterValidation(desdeId, hastaId) {
+    const desdeInput = document.getElementById(desdeId);
+    const hastaInput = document.getElementById(hastaId);
+    
+    if (desdeInput) {
+        desdeInput.addEventListener('change', () => validateDateFilters(desdeId, hastaId));
+    }
+    if (hastaInput) {
+        hastaInput.addEventListener('change', () => validateDateFilters(desdeId, hastaId));
+    }
+    
+    // Initial validation
+    validateDateFilters(desdeId, hastaId);
+}
+
+// ----------------------------------------------------------------------
 
 // Función helper para calcular puntos de pausas
 function calcularPuntosPausa(tipoPausa) {
@@ -111,7 +313,7 @@ function renderCampañasTable(data) {
     const tbody = document.getElementById('campañas-table-body');
     
     if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="no-data">No hay datos disponibles.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="no-data">No hay datos disponibles.</td></tr>';
         return;
     }
     
@@ -122,14 +324,6 @@ function renderCampañasTable(data) {
             <td>${row.nombre_campana || '-'}</td>
             <td>${row.fecha || '-'}</td>
             <td>${row.empresa || '-'}</td>
-            <td>
-                <button class="btn btn-info btn-sm" onclick="editRow('participacion_campanas', ${row.id})" title="Editar">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn btn-danger btn-sm" onclick="deleteRow('participacion_campanas', ${row.id})" title="Eliminar">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
         </tr>
     `).join('');
 }
@@ -187,8 +381,57 @@ function limpiarFiltrosCampanas() {
     document.getElementById('filter-campanas-fecha-desde').value = '';
     document.getElementById('filter-campanas-fecha-hasta').value = '';
     
+    // Re-enable hasta input
+    document.getElementById('filter-campanas-fecha-hasta').disabled = true;
+    
     updateCampañasStats(allCampanasData);
     renderCampañasTable(allCampanasData);
+}
+
+// Aplicar Filtros de Inglés
+function aplicarFiltrosIngles() {
+    const nombreFilter = document.getElementById('filter-ingles-nombre').value.toLowerCase();
+    const documentoFilter = document.getElementById('filter-ingles-documento').value;
+    const nivelFilter = document.getElementById('filter-ingles-nivel').value.toLowerCase();
+    const fechaDesde = document.getElementById('filter-ingles-fecha-desde').value;
+    const fechaHasta = document.getElementById('filter-ingles-fecha-hasta').value;
+    
+    const filteredData = allInglesData.filter(row => {
+        if (nombreFilter && !row.empleado_nombre.toLowerCase().includes(nombreFilter)) {
+            return false;
+        }
+        if (documentoFilter && !String(row.empleado_id).includes(documentoFilter)) {
+            return false;
+        }
+        if (nivelFilter && row.nivel && !row.nivel.toLowerCase().includes(nivelFilter)) {
+            return false;
+        }
+        if (fechaDesde && row.fecha_evaluacion && row.fecha_evaluacion < fechaDesde) {
+            return false;
+        }
+        if (fechaHasta && row.fecha_evaluacion && row.fecha_evaluacion > fechaHasta) {
+            return false;
+        }
+        return true;
+    });
+    
+    updateInglesStats(filteredData);
+    renderInglesTable(filteredData);
+}
+
+// Limpiar Filtros de Inglés
+function limpiarFiltrosIngles() {
+    document.getElementById('filter-ingles-nombre').value = '';
+    document.getElementById('filter-ingles-documento').value = '';
+    document.getElementById('filter-ingles-nivel').value = '';
+    document.getElementById('filter-ingles-fecha-desde').value = '';
+    document.getElementById('filter-ingles-fecha-hasta').value = '';
+
+    // Re-enable hasta input
+    document.getElementById('filter-ingles-fecha-hasta').disabled = true;
+
+    updateInglesStats(allInglesData);
+    renderInglesTable(allInglesData);
 }
 
 // Load Inglés
@@ -219,26 +462,17 @@ function renderInglesTable(data) {
     const tbody = document.getElementById('ingles-table-body');
     
     if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="no-data">No hay datos disponibles.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="no-data">No hay datos disponibles.</td></tr>';
         return;
     }
     
     tbody.innerHTML = data.map(row => `
         <tr>
-            <td>${row.id}</td>
+            <td>${row.empleado_id || '-'}</td>
             <td>${row.empleado_nombre}</td>
             <td>${row.nivel || '-'}</td>
             <td><strong>30</strong></td>
             <td>${row.fecha_evaluacion || '-'}</td>
-            <td>${row.certificacion || '-'}</td>
-            <td>
-                <button class="btn btn-info btn-sm" onclick="editRow('ingles', ${row.id})">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn btn-danger btn-sm" onclick="deleteRow('ingles', ${row.id})">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
         </tr>
     `).join('');
 }
@@ -276,7 +510,7 @@ function renderPausasTable(data) {
     const tbody = document.getElementById('pausas-table-body');
     
     if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="no-data">No hay datos disponibles.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="no-data">No hay datos disponibles.</td></tr>';
         return;
     }
     
@@ -299,14 +533,6 @@ function renderPausasTable(data) {
             <td><strong>${puntos}</strong></td>
             <td>${row.fecha || '-'}</td>
             <td>${evidenciaHtml}</td>
-            <td>
-                <button class="btn btn-info btn-sm" onclick="editRow('pausas', ${row.id})" title="Editar">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn btn-danger btn-sm" onclick="deleteRow('pausas', ${row.id})" title="Eliminar">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
         </tr>
         `;
     }).join('');
@@ -358,6 +584,9 @@ function limpiarFiltrosPausas() {
     document.getElementById('filter-pausas-fecha-desde').value = '';
     document.getElementById('filter-pausas-fecha-hasta').value = '';
     
+    // Re-enable hasta input
+    document.getElementById('filter-pausas-fecha-hasta').disabled = true;
+    
     updatePausasStats(allPausasData);
     renderPausasTable(allPausasData);
 }
@@ -389,26 +618,18 @@ function renderPuntosAdicionalesTable(data) {
     const tbody = document.getElementById('puntos-adicionales-table-body');
     
     if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="no-data">No hay datos disponibles.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="no-data">No hay datos disponibles.</td></tr>';
         return;
     }
     
     tbody.innerHTML = data.map(row => `
         <tr>
             <td>${row.empleado_id || '-'}</td>
-            <td>${row.fecha || '-'}</td>
             <td>${row.empleado_nombre}</td>
             <td>${row.concepto}</td>
+            <td>${row.fecha || '-'}</td>
             <td><strong>${row.puntos}</strong></td>
             <td>${row.aprobado_por || '-'}</td>
-            <td>
-                <button class="btn btn-info btn-sm" onclick="editRow('puntos_adicionales', ${row.id})" title="Editar">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn btn-danger btn-sm" onclick="deleteRow('puntos_adicionales', ${row.id})" title="Eliminar">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
         </tr>
     `).join('');
 }
@@ -696,6 +917,9 @@ function limpiarFiltros() {
     document.getElementById('filter-fecha-desde').value = '';
     document.getElementById('filter-fecha-hasta').value = '';
     document.getElementById('filter-actividad').value = '';
+    
+    // Re-enable hasta input
+    document.getElementById('filter-fecha-hasta').disabled = true;
     
     updatePuntosAdicionalesStats(allPuntosAdicionalesData);
     renderPuntosAdicionalesTable(allPuntosAdicionalesData);
@@ -987,6 +1211,9 @@ function limpiarFiltrosTotales() {
     document.getElementById('filter-totales-fecha-desde').value = '';
     document.getElementById('filter-totales-fecha-hasta').value = '';
     
+    // Re-enable hasta input
+    document.getElementById('filter-totales-fecha-hasta').disabled = true;
+    
     renderTotalesTable(allTotalesData);
     updateSummaryStats(allTotalesData);
 }
@@ -1126,14 +1353,9 @@ function showNotification(message, type = 'info') {
 
 // Eventos de Enter en los inputs de filtro
 document.addEventListener('DOMContentLoaded', function() {
-    const filterInputs = document.querySelectorAll('.filter-input, .filter-select');
-    filterInputs.forEach(input => {
-        input.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                aplicarFiltros();
-            }
-        });
-    });
+    // NOTE: each section has its own Enter-key bindings defined below.
+    // We intentionally avoid a generic handler to prevent wrong filter functions
+    // from being triggered when pressing Enter in other sections.
     
     // Eventos de Enter para filtros de Pausas
     const pausasFilterInputs = document.querySelectorAll('#filter-pausas-nombre, #filter-pausas-documento, #filter-pausas-fecha-desde, #filter-pausas-fecha-hasta');
@@ -1154,6 +1376,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+    // Eventos de Enter para filtros de Inglés
+    const inglesFilterInputs = document.querySelectorAll('#filter-ingles-nombre, #filter-ingles-documento, #filter-ingles-nivel, #filter-ingles-fecha-desde, #filter-ingles-fecha-hasta');
+    inglesFilterInputs.forEach(input => {
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                aplicarFiltrosIngles();
+            }
+        });
+    });
     
     // Eventos de Enter para filtros de Totales
     const totalesFilterInputs = document.querySelectorAll('#filter-totales-nombre, #filter-totales-documento, #filter-totales-fecha-desde, #filter-totales-fecha-hasta');
@@ -1164,6 +1395,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+    
+    // Setup date filter validations
+    setupDateFilterValidation('filter-campanas-fecha-desde', 'filter-campanas-fecha-hasta');
+    setupDateFilterValidation('filter-pausas-fecha-desde', 'filter-pausas-fecha-hasta');
+    setupDateFilterValidation('filter-fecha-desde', 'filter-fecha-hasta');
+    setupDateFilterValidation('filter-totales-fecha-desde', 'filter-totales-fecha-hasta');
+    setupDateFilterValidation('filter-ingles-fecha-desde', 'filter-ingles-fecha-hasta');
 });
 
 // Sincronizar todo desde Google Sheets
@@ -1249,4 +1487,5 @@ async function sincronizarTodo() {
 // Load initial data
 document.addEventListener('DOMContentLoaded', function() {
     loadCampañas();
+    attachSortHandlers();
 });

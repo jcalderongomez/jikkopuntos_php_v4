@@ -42,13 +42,45 @@ body {
     flex-direction: column;
     transition: width 0.3s ease;
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 10;
 }
 
 .sidebar.collapsed {
     width: 70px;
+    min-width: 70px;
+    max-width: 70px;
+}
+
+.sidebar.collapsed .sidebar-header h2,
+.sidebar.collapsed .sidebar-menu span {
+    display: none;
+}
+
+.sidebar.collapsed .sidebar-header {
+    justify-content: center;
+    padding: 10px 3px;
+}
+
+.sidebar.collapsed .toggle-btn {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+}
+
+.sidebar.collapsed .menu-item {
+    justify-content: center;
+    padding: 12px 0;
+}
+
+.sidebar.collapsed .menu-item i {
+    margin: 0;
 }
 
 .sidebar-header {
+    position: relative;
     padding: 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
@@ -64,13 +96,37 @@ body {
 }
 
 .toggle-btn {
-    background: none;
-    border: none;
+    position: absolute;
+    top: 12px;
+    right: 10px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     color: white;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     cursor: pointer;
-    padding: 5px;
-    transition: transform 0.3s;
+    padding: 8px;
+    border-radius: 50%;
+    transition: transform 0.3s, background 0.3s;
+    z-index: 2000;
+    min-width: 34px;
+    min-height: 34px;
+}
+
+.sidebar.collapsed .toggle-btn {
+    right: 10px;
+}
+
+.sidebar:not(.collapsed) .toggle-btn {
+    right: 10px;
+}
+
+.main-content {
+    position: relative;
+    z-index: 1;
+}
+
+.sidebar {
+    z-index: 5;
 }
 
 .toggle-btn:hover {
@@ -327,6 +383,17 @@ body {
     font-style: italic;
     padding: 40px !important;
 }
+
+/* Sortable table headers */
+.data-table th.sortable {
+    cursor: pointer;
+}
+
+.data-table th.sortable i {
+    margin-left: 5px;
+    transition: transform 0.2s;
+}
+
 /* Sync Main Action */
 .sync-main-action {
     margin-bottom: 30px;

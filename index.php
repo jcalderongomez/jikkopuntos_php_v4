@@ -49,10 +49,10 @@ require_once 'config/database.php';
                     <i class="fas fa-sync"></i>
                     <span>Sincronizar Google Sheets</span>
                 </a>
-                <a href="#" class="menu-item" data-section="config">
+                <!-- <a href="#" class="menu-item" data-section="config">
                     <i class="fas fa-cog"></i>
                     <span>Configuración</span>
-                </a>
+                </a> -->
             </nav>
         </aside>
 
@@ -78,7 +78,7 @@ require_once 'config/database.php';
                             <i class="fas fa-bullhorn"></i>
                             <div class="stat-info">
                                 <h3 id="total-campañas">0</h3>
-                                <p>Total Campañas</p>
+                                <p>Total de Talentos en Campañas Y Eventos</p>
                             </div>
                         </div>
                         <div class="stat-card">
@@ -112,7 +112,7 @@ require_once 'config/database.php';
                             </div>
                             <div class="filter-group">
                                 <label for="filter-campanas-fecha-hasta"><i class="fas fa-calendar"></i> Fecha Hasta</label>
-                                <input type="date" id="filter-campanas-fecha-hasta" class="filter-input">
+                                <input type="date" id="filter-campanas-fecha-hasta" class="filter-input" disabled>
                             </div>
                         </div>
                         <div class="filter-actions">
@@ -126,20 +126,19 @@ require_once 'config/database.php';
                     </div>
 
                     <div class="table-container">
-                        <table class="data-table">
+                        <table class="data-table" data-section="campañas">
                             <thead>
                                 <tr>
-                                    <th>Documento</th>
-                                    <th>Nombre</th>
-                                    <th>Campaña / Actividad</th>
-                                    <th>Fecha</th>
-                                    <th>Empresa</th>
-                                    <th>Acciones</th>
+                                    <th class="sortable" data-key="empleado_id">Documento <i class="fas fa-sort"></i></th>
+                                    <th class="sortable" data-key="empleado_nombre">Nombre <i class="fas fa-sort"></i></th>
+                                    <th class="sortable" data-key="nombre_campana">Campaña / Actividad <i class="fas fa-sort"></i></th>
+                                    <th class="sortable" data-key="fecha">Fecha <i class="fas fa-sort"></i></th>
+                                    <th class="sortable" data-key="empresa">Empresa <i class="fas fa-sort"></i></th>
                                 </tr>
                             </thead>
                             <tbody id="campañas-table-body">
                                 <tr>
-                                    <td colspan="6" class="no-data">No hay datos disponibles. Cargue información desde Google Sheets.</td>
+                                    <td colspan="5" class="no-data">No hay datos disponibles. Cargue información desde Google Sheets.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -169,22 +168,54 @@ require_once 'config/database.php';
                         </div>
                     </div>
 
+                    <!-- Filtros Inglés -->
+                    <div class="filters-container">
+                        <div class="filters-grid">
+                            <div class="filter-group">
+                                <label><i class="fas fa-user"></i> Empleado</label>
+                                <input type="text" id="filter-ingles-nombre" class="filter-input" placeholder="Buscar por nombre">
+                            </div>
+                            <div class="filter-group">
+                                <label><i class="fas fa-id-card"></i> Documento</label>
+                                <input type="text" id="filter-ingles-documento" class="filter-input" placeholder="Buscar por documento">
+                            </div>
+                            <div class="filter-group">
+                                <label><i class="fas fa-graduation-cap"></i> Nivel</label>
+                                <input type="text" id="filter-ingles-nivel" class="filter-input" placeholder="Buscar por nivel">
+                            </div>
+                            <div class="filter-group">
+                                <label><i class="fas fa-calendar-alt"></i> Fecha Desde</label>
+                                <input type="date" id="filter-ingles-fecha-desde" class="filter-input">
+                            </div>
+                            <div class="filter-group">
+                                <label><i class="fas fa-calendar-check"></i> Fecha Hasta</label>
+                                <input type="date" id="filter-ingles-fecha-hasta" class="filter-input" disabled>
+                            </div>
+                        </div>
+                        <div class="filter-actions">
+                            <button class="btn btn-filter" onclick="aplicarFiltrosIngles()">
+                                <i class="fas fa-filter"></i> Aplicar Filtros
+                            </button>
+                            <button class="btn btn-clear" onclick="limpiarFiltrosIngles()">
+                                <i class="fas fa-times"></i> Limpiar
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="table-container">
-                        <table class="data-table">
+                        <table class="data-table" data-section="ingles">
                             <thead>
                                 <tr>
-                                    <th>ID</th>
-                                    <th>Empleado</th>
-                                    <th>Nivel</th>
-                                    <th>Puntos</th>
-                                    <th>Fecha Evaluación</th>
-                                    <th>Certificación</th>
-                                    <th>Acciones</th>
+                                    <th class="sortable" data-key="empleado_id">Cédula <i class="fas fa-sort"></i></th>
+                                    <th class="sortable" data-key="empleado_nombre">Empleado <i class="fas fa-sort"></i></th>
+                                    <th class="sortable" data-key="nivel">Nivel <i class="fas fa-sort"></i></th>
+                                    <th class="sortable" data-key="puntos">Puntos <i class="fas fa-sort"></i></th>
+                                    <th class="sortable" data-key="fecha_evaluacion">Fecha Evaluación <i class="fas fa-sort"></i></th>
                                 </tr>
                             </thead>
                             <tbody id="ingles-table-body">
                                 <tr>
-                                    <td colspan="7" class="no-data">No hay datos disponibles. Cargue información desde Google Sheets.</td>
+                                    <td colspan="6" class="no-data">No hay datos disponibles. Cargue información desde Google Sheets.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -241,7 +272,7 @@ require_once 'config/database.php';
                             
                             <div class="filter-group">
                                 <label><i class="fas fa-calendar-check"></i> Fecha Fin</label>
-                                <input type="date" id="filter-pausas-fecha-hasta" class="filter-input">
+                                <input type="date" id="filter-pausas-fecha-hasta" class="filter-input" disabled>
                             </div>
                         </div>
                         
@@ -256,21 +287,20 @@ require_once 'config/database.php';
                     </div>
 
                     <div class="table-container">
-                        <table class="data-table">
+                        <table class="data-table" data-section="pausas">
                             <thead>
                                 <tr>
-                                    <th>Documento</th>
-                                    <th>Nombre</th>
-                                    <th>Tipo de Pausa</th>
-                                    <th>Puntos</th>
-                                    <th>Fecha</th>
+                                    <th class="sortable" data-key="empleado_id">Documento <i class="fas fa-sort"></i></th>
+                                    <th class="sortable" data-key="empleado_nombre">Nombre <i class="fas fa-sort"></i></th>
+                                    <th class="sortable" data-key="tipo_pausa">Tipo de Pausa <i class="fas fa-sort"></i></th>
+                                    <th class="sortable" data-key="puntos">Puntos <i class="fas fa-sort"></i></th>
+                                    <th class="sortable" data-key="fecha">Fecha <i class="fas fa-sort"></i></th>
                                     <th>Evidencia</th>
-                                    <th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="pausas-table-body">
                                 <tr>
-                                    <td colspan="7" class="no-data">No hay datos disponibles. Cargue información desde Google Sheets.</td>
+                                    <td colspan="6" class="no-data">No hay datos disponibles. Cargue información desde Google Sheets.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -281,11 +311,6 @@ require_once 'config/database.php';
                 <section id="puntos-adicionales-section" class="content-section">
                     <div class="section-header">
                         <h2>Puntos Adicionales</h2>
-                        <div>
-                            <button class="btn btn-info" onclick="window.open('api/diagnostico.php', '_blank')">
-                                <i class="fas fa-clipboard-check"></i> Diagnóstico
-                            </button>
-                        </div>
                     </div>
                     
                     <div class="stats-grid">
@@ -336,7 +361,7 @@ require_once 'config/database.php';
                             
                             <div class="filter-group">
                                 <label><i class="fas fa-calendar-check"></i> Fecha Fin</label>
-                                <input type="date" id="filter-fecha-hasta" class="filter-input">
+                                <input type="date" id="filter-fecha-hasta" class="filter-input" disabled>
                             </div>
                             
                             <div class="filter-group">
@@ -356,21 +381,20 @@ require_once 'config/database.php';
                     </div>
 
                     <div class="table-container">
-                        <table class="data-table">
+                        <table class="data-table" data-section="puntos-adicionales">
                             <thead>
                                 <tr>
-                                    <th>Documento</th>
-                                    <th>Fecha</th>
-                                    <th>Nombre</th>
-                                    <th>Actividad</th>
-                                    <th># de Puntos</th>
-                                    <th>Responsable</th>
-                                    <th>Acciones</th>
+                                    <th class="sortable" data-key="empleado_id">Documento <i class="fas fa-sort"></i></th>
+                                    <th class="sortable" data-key="empleado_nombre">Nombre <i class="fas fa-sort"></i></th>
+                                    <th class="sortable" data-key="concepto">Actividad <i class="fas fa-sort"></i></th>
+                                    <th class="sortable" data-key="fecha">Fecha <i class="fas fa-sort"></i></th>
+                                    <th class="sortable" data-key="puntos"># de Puntos <i class="fas fa-sort"></i></th>
+                                    <th class="sortable" data-key="aprobado_por">Responsable <i class="fas fa-sort"></i></th>
                                 </tr>
                             </thead>
                             <tbody id="puntos-adicionales-table-body">
                                 <tr>
-                                    <td colspan="7" class="no-data">No hay datos disponibles. Cargue información desde Google Sheets.</td>
+                                    <td colspan="6" class="no-data">No hay datos disponibles. Cargue información desde Google Sheets.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -382,9 +406,7 @@ require_once 'config/database.php';
                     <div class="section-header">
                         <h2>Resumen General - Puntos por Empleado</h2>
                         <div>
-                            <button class="btn btn-primary" onclick="loadTotales()">
-                                <i class="fas fa-sync"></i> Actualizar Totales
-                            </button>
+                            <!-- El botón Actualizar Totales se removió porque no era necesario. -->
                             <button class="btn btn-success" onclick="exportarTotalesExcel()">
                                 <i class="fas fa-file-excel"></i> Exportar a Excel
                             </button>
@@ -443,7 +465,7 @@ require_once 'config/database.php';
                             </div>
                             <div class="filter-group">
                                 <label for="filter-totales-fecha-hasta"><i class="fas fa-calendar"></i> Fecha Hasta</label>
-                                <input type="date" id="filter-totales-fecha-hasta" class="filter-input">
+                                <input type="date" id="filter-totales-fecha-hasta" class="filter-input" disabled>
                             </div>
                         </div>
                         <div class="filter-actions">
@@ -457,16 +479,16 @@ require_once 'config/database.php';
                     </div>
 
                     <div class="table-container">
-                        <table class="data-table">
+                        <table class="data-table" data-section="totales">
                             <thead>
                                 <tr>
-                                    <th>Documento</th>
-                                    <th>Nombre</th>
-                                    <th>Inglés</th>
-                                    <th>Pausas</th>
-                                    <th>Campañas</th>
-                                    <th>Adicionales</th>
-                                    <th>Total</th>
+                                    <th class="sortable" data-key="id">Documento <i class="fas fa-sort"></i></th>
+                                    <th class="sortable" data-key="nombre">Nombre <i class="fas fa-sort"></i></th>
+                                    <th class="sortable" data-key="ingles">Inglés <i class="fas fa-sort"></i></th>
+                                    <th class="sortable" data-key="pausas">Pausas <i class="fas fa-sort"></i></th>
+                                    <th class="sortable" data-key="campanas">Campañas <i class="fas fa-sort"></i></th>
+                                    <th class="sortable" data-key="adicionales">Adicionales <i class="fas fa-sort"></i></th>
+                                    <th class="sortable" data-key="total">Total <i class="fas fa-sort"></i></th>
                                 </tr>
                             </thead>
                             <tbody id="totales-table-body">
